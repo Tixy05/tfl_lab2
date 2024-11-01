@@ -1,3 +1,5 @@
+using Bijections
+
 const State = Int 
 const Letter = AbstractChar
 const Word = AbstractString
@@ -117,11 +119,40 @@ function minimize(α::DFA)::DFA
     DFA(new_Q, new_Σ, new_δ, new_q0, new_F)
 end
 
-# function DFA_from_Lstar(
-#         main_prefixes, 
-#         complementary_prefixes, 
-#         suffixes, 
-#         values
-#     )
-#     Q = Set(1:rows)
-# end
+function DFA_from_Lstar(
+        main_prefixes, 
+        complementary_prefixes, 
+        suffixes, 
+        rows, # 1 0 1 0 0 1 ...
+    )
+    state_map = Dict(p => idx for p ∈ main_prefixes, idx ∈ 1:length(main_prefixes))
+    prefix_to_row = Dict()
+    all_prefixes = vcat(main_prefixes, complementary_prefixes)
+    for (row, p) ∈ zip(rows, all_prefixes)
+        prefix_to_row[p] = row
+    end
+    row_to_prefix = Dict()
+    for (row, p) ∈ zip(rows, main_prefixes)
+        row_to_prefix[row] = p
+    end
+    Q = Set(1:length(main_prefixes))
+    q0 = 0
+    Σ = ('L', 'R')
+    δ = Dict()
+    F = Set()
+    for p ∈ main_prefixes, row ∈ rows
+        row[1] == 1 && push!(F, state_map[p])
+    end
+    for p ∈ all_prefixes
+        if p == ""
+            q0 = state_map[p]
+            continue
+        end
+        sub_prefix = p[1:length(p)-1]
+        letter = p[length(p) - 1]
+        from = state_map[row_to_prefix[prefix_to_row[sub_prefix]]]
+        to = state_map[row_to_prefix[prefix_to_row[p]]]
+        δ[(from, letter)] = to
+    end
+    DFA(Q, q0, Σ, δ, F)
+end
